@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chatMessages');
     const userInput = document.getElementById('userInput');
@@ -9,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ** GERA UM ID ÚNICO PARA ESTA SESSÃO DE CONVERSA **
     const threadId = 'thread_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-    console.log("ID da Conversa (Thread ID):", threadId); // Para você poder ver o ID no console
+    console.log("ID da Conversa (Thread ID):", threadId);
 
     // --- FUNÇÕES AUXILIARES ---
     function addMessageToChat(message, sender) {
@@ -97,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         try {
-            // Adiciona o thread_id ao corpo da requisição
             const fullBody = { ...body, thread_id: threadId };
 
             const response = await fetch(MAKE_WEBHOOK_URL, {
