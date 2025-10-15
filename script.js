@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chatMessages');
     const userInput = document.getElementById('userInput');
@@ -6,14 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // ** COLE AQUI O SEU ÚNICO WEBHOOK DO MAKE **
     const MAKE_WEBHOOK_URL = 'https://hook.us1.make.com/61m7xod5nq2qsiumlotwegkdxyl3welo'; 
 
+    // ** GERA UM ID ÚNICO PARA ESTA SESSÃO DE CONVERSA **
+    const threadId = 'thread_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    console.log("ID da Conversa (Thread ID):", threadId); // Para você poder ver o ID no console
+
     // --- FUNÇÕES AUXILIARES ---
     function addMessageToChat(message, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message');
         messageDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
-        messageDiv.innerHTML = `<p>${message}</p>`; // Usamos <p> para o texto
+        messageDiv.innerHTML = `<p>${message}</p>`;
         chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll para o final
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     function disableInput(message = "Aguardando sua escolha...") {
@@ -31,27 +36,24 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- FUNÇÕES PRINCIPAIS ---
     async function handleApiResponse(data) {
-        // Log para depuração: veja o que o Make está enviando
         console.log("Resposta recebida do Make:", data); 
 
-        // Verifique se 'data' e 'data.type' existem e são válidos
         if (!data || typeof data.type === 'undefined' || typeof data.text === 'undefined') {
             addMessageToChat("Desculpe, recebi uma resposta do servidor em um formato inesperado.", 'bot');
-            enableInput(); // Reabilita para o usuário tentar novamente
+            enableInput();
             return;
         }
 
-        // Lógica para decidir o que fazer com base na resposta do Make
         if (data.type === 'reply') {
             addMessageToChat(data.text, 'bot');
-            enableInput(); // Sempre reabilita o input após uma resposta normal
+            enableInput();
         } else if (data.type === 'prompt_ouvidoria') {
             addMessageToChat(data.text, 'bot');
-            disableInput(); // Desabilita o input de texto normal
-            createOuvidoriaButtons(); // Cria os botões Sim/Não
+            disableInput();
+            createOuvidoriaButtons();
         } else if (data.type === 'confirmation') {
              addMessageToChat(data.text, 'bot');
-             enableInput(); // Habilita o input novamente após confirmação
+             enableInput();
         } else {
             addMessageToChat("Desculpe, recebi uma resposta com um tipo desconhecido.", 'bot');
             enableInput();
@@ -59,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function createOuvidoriaButtons() {
-        // Primeiro, remova quaisquer botões de ouvidoria anteriores para evitar duplicatas
         const existingButtonContainers = chatMessages.querySelectorAll('.button-container');
         existingButtonContainers.forEach(container => container.remove());
 
@@ -84,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function sendDataToMake(body) {
-        // Remova qualquer indicador de digitação existente antes de adicionar um novo
         const existingTypingIndicator = document.querySelector('.typing-indicator');
         if (existingTypingIndicator) {
             chatMessages.removeChild(existingTypingIndicator);
@@ -97,22 +97,24 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         try {
+            // Adiciona o thread_id ao corpo da requisição
+            const fullBody = { ...body, thread_id: threadId };
+
             const response = await fetch(MAKE_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                body: JSON.stringify(fullBody)
             });
-            const data = await response.json(); // Tenta parsear a resposta como JSON
+            const data = await response.json();
             handleApiResponse(data);
         } catch (error) {
             console.error('Erro ao comunicar com o Make:', error);
-            // Mensagem de erro mais específica se o JSON não puder ser parseado
             if (error instanceof SyntaxError && error.message.includes('JSON')) {
                  addMessageToChat('Desculpe, o servidor enviou uma resposta inválida (não-JSON).', 'bot');
             } else {
                 addMessageToChat('Desculpe, houve um erro de rede ao processar sua solicitação.', 'bot');
             }
-            enableInput(); // Reabilita o input em caso de erro
+            enableInput();
         } finally {
             const currentTypingIndicator = document.querySelector('.typing-indicator');
             if (currentTypingIndicator) {
@@ -126,14 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (messageText === '') return;
         addMessageToChat(messageText, 'user');
         userInput.value = '';
-        sendDataToMake({ type: 'message', text: messageText }); // Envia como tipo 'message'
+        sendDataToMake({ type: 'message', text: messageText });
     }
 
     function sendChoice(choice, container) {
-        // Desabilitar os botões clicados e mostrar a escolha do usuário
         container.innerHTML = `<p class="choice-made">Sua escolha: ${choice === 'sim' ? 'Sim' : 'Não'}. Processando...</p>`;
-        
-        // Envia a escolha como tipo 'choice'
         sendDataToMake({ type: 'choice', value: choice }); 
     }
     
